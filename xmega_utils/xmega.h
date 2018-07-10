@@ -48,4 +48,40 @@ extern void		NVM_wait(void);
 extern void		NVM_execute_command(uint8_t command);
 
 
+/****************************************************************************************
+* Baud rate setting calculator for XMEGA devices
+* Author: omegacs
+* https://web.archive.org/web/20130601050533/http://blog.omegacs.net/2010/08/18/xmega-fractional-baud-rate-source-code/
+*/
+#define _BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,bscale) (					\
+((bscale) < 0) ?														\
+  (int)((((float)(f_cpu)/(8*(float)(baud)))-1)*(1<<-(bscale)))			\
+: (int)((float)(f_cpu)/((1<<(bscale))*8*(float)(baud)))-1 )
+
+#define _BSCALE(f_cpu,baud) (											\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-7) < 4096) ? -7 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-6) < 4096) ? -6 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-5) < 4096) ? -5 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-4) < 4096) ? -4 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-3) < 4096) ? -3 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-2) < 4096) ? -2 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,-1) < 4096) ? -1 :				\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,0) < 4096) ? 0 :					\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,1) < 4096) ? 1 :					\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,2) < 4096) ? 2 :					\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,3) < 4096) ? 3 :					\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,4) < 4096) ? 4 :					\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,5) < 4096) ? 5 :					\
+(_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,6) < 4096) ? 6 :					\
+7 )
+
+#define BSEL(f_cpu,baud)												\
+	_BAUD_BSEL_FROM_BAUDSCALE(f_cpu,baud,_BSCALE(f_cpu,baud))
+
+#define BSCALE(f_cpu,baud) ((_BSCALE(f_cpu,baud)<0) ? (16+_BSCALE(f_cpu,baud)) : _BSCALE(f_cpu,baud))
+
+#define CALC_BAUDCTRLA(baud)	BSEL(F_CPU, baud) & 0xff;
+#define CALC_BAUDCTRLB(baud)	(BSCALE(F_CPU, baud) << USART_BSCALE0_bp) | (BSEL(F_CPU, baud) >> 8);
+
+
 #endif /* XMEGA_H_ */
